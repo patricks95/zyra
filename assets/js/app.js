@@ -12,6 +12,7 @@ class ZyraApp {
         this.isVideoOff = false;
         this.isScreenSharing = false;
         this.participants = new Map();
+        this.meetingModalShown = false;
         
         this.init();
     }
@@ -209,12 +210,27 @@ class ZyraApp {
             
             console.log('Meeting object created:', this.meeting);
             
-            // Set up event listeners with error handling
-            this.setupMeetingEventListeners();
+            // Try to set up event listeners, but don't let it block meeting creation
+            try {
+                this.setupMeetingEventListeners();
+            } catch (error) {
+                console.warn('Event listeners failed, using basic mode:', error);
+                this.setupBasicEventListeners();
+            }
             
             // Join the meeting
             console.log('Joining meeting...');
             this.meeting.join();
+            
+            // Set up a fallback timer to show meeting modal if events don't work
+            setTimeout(() => {
+                if (!this.meetingModalShown) {
+                    console.log('Event-based meeting join failed, using fallback');
+                    this.showMeetingModal();
+                    this.setupLocalVideo();
+                    this.showNotification('Meeting started in basic mode', 'info');
+                }
+            }, 2000);
             
         } catch (error) {
             console.error('Error joining meeting:', error);
@@ -321,30 +337,74 @@ class ZyraApp {
     
     setupMeetingEventListeners() {
         try {
-            // Use try-catch to handle event listener setup errors
-            const events = [
-                'meeting-joined',
-                'meeting-left', 
-                'participant-joined',
-                'participant-left',
-                'stream-changed',
-                'error'
-            ];
+            console.log('Setting up meeting event listeners...');
             
-            events.forEach(eventName => {
-                try {
-                    this.meeting.on(eventName, (data) => {
-                        this.handleMeetingEvent(eventName, data);
-                    });
-                } catch (error) {
-                    console.warn(`Could not set up listener for event: ${eventName}`, error);
+            // Check if the meeting object has the on method
+            if (!this.meeting || typeof this.meeting.on !== 'function') {
+                console.warn('Meeting object does not have on method, using basic setup');
+                this.setupBasicEventListeners();
+                return;
+            }
+            
+            // Try to set up listeners one by one with individual error handling
+            this.setupEventListener('meeting-joined', () => {
+                console.log('Meeting joined successfully');
+                this.showMeetingModal();
+                this.setupLocalVideo();
+                this.showNotification('Successfully joined meeting!', 'success');
+            });
+            
+            this.setupEventListener('meeting-left', () => {
+                console.log('Meeting left');
+                this.closeMeeting();
+                this.showNotification('Left meeting successfully', 'success');
+            });
+            
+            this.setupEventListener('participant-joined', (participant) => {
+                console.log('Participant joined:', participant);
+                if (participant && participant.id) {
+                    this.participants.set(participant.id, participant);
+                    this.updateParticipantCount();
+                    this.setupRemoteVideo(participant);
+                    this.showNotification(`${participant.name || 'Participant'} joined the meeting`, 'success');
                 }
+            });
+            
+            this.setupEventListener('participant-left', (participant) => {
+                console.log('Participant left:', participant);
+                if (participant && participant.id) {
+                    this.participants.delete(participant.id);
+                    this.updateParticipantCount();
+                    this.showNotification(`${participant.name || 'Participant'} left the meeting`, 'warning');
+                }
+            });
+            
+            this.setupEventListener('stream-changed', (data) => {
+                console.log('Stream changed:', data);
+                if (data && data.stream && data.stream.kind === 'video') {
+                    this.setupRemoteVideo(data.participant);
+                }
+            });
+            
+            this.setupEventListener('error', (error) => {
+                console.error('Meeting error:', error);
+                this.showNotification('Meeting error occurred. Please try again.', 'error');
             });
             
         } catch (error) {
             console.error('Error setting up meeting event listeners:', error);
-            // Fallback: set up basic listeners manually
             this.setupBasicEventListeners();
+        }
+    }
+    
+    setupEventListener(eventName, callback) {
+        try {
+            console.log(`Setting up listener for: ${eventName}`);
+            this.meeting.on(eventName, callback);
+            console.log(`Successfully set up listener for: ${eventName}`);
+        } catch (error) {
+            console.warn(`Could not set up listener for event: ${eventName}`, error);
+            // Don't throw, just log and continue
         }
     }
     
@@ -524,6 +584,7 @@ class ZyraApp {
         if (modal) {
             modal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            this.meetingModalShown = true;
         }
     }
     
@@ -532,6 +593,7 @@ class ZyraApp {
         if (modal) {
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
+            this.meetingModalShown = false;
         }
         
         if (this.meeting) {
