@@ -2,9 +2,9 @@
 // Zyra Video Conferencing Configuration
 
 // VideoSDK Configuration
-define('VIDEOSDK_API_KEY', '73648993-befd-40c3-ba71-56a3d1e6e304');
-define('VIDEOSDK_SECRET_KEY', 'f604fad113af89b72ae9df09d9ca9a4bfa83a36b0e28543668ab947f0e40b02e');
-define('VIDEOSDK_TOKEN', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiI3MzY0ODk5My1iZWZkLTQwYzMtYmE3MS01NmEzZDFlNmUzMDQiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc1ODM0OTQ1NSwiZXhwIjoxNzg5ODg1NDU1fQ.6iIQeg2rABa0Mp3gfUxqsSxd6J8GBuyQ6tP7msoPuJU');
+define('VIDEOSDK_API_KEY', '264a55c3-2c83-4f43-b36a-002d37fbcf1e');
+define('VIDEOSDK_SECRET_KEY', '67d52398243cbf43d0c5a8c15fe515dad43d40cabcf6951ec7f34a8d2aef2ed9');
+define('VIDEOSDK_TOKEN', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcGlrZXkiOiIyNjRhNTVjMy0yYzgzLTRmNDMtYjM2YS0wMDJkMzdmYmNmMWUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIl0sImlhdCI6MTc1ODM2MTkwMCwiZXhwIjoxNzU4OTY2NzAwfQ.tQLdxahiITv6Cnb82y61oQDNF9SjcfGRe4wqNIn1P_o');
 
 // Application Configuration
 define('APP_NAME', 'Zyra');
