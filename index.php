@@ -10,18 +10,20 @@
         // VideoSDK loading with multiple fallbacks
         let videoSDKLoaded = false;
         let videoSDKAttempts = 0;
-        const maxAttempts = 3;
+        const maxAttempts = 5;
         
         const videoSDKCDNs = [
+            'https://sdk.videosdk.live/js-sdk/0.1.6/videosdk.js',
             'https://sdk.videosdk.live/js-sdk/0.3.3/videosdk.js',
             'https://cdn.jsdelivr.net/npm/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js',
-            'https://unpkg.com/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js'
+            'https://unpkg.com/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js',
+            'https://cdn.skypack.dev/@videosdk.live/js-sdk@0.3.3'
         ];
         
         function loadVideoSDK() {
             if (videoSDKAttempts >= maxAttempts) {
-                console.error('All VideoSDK CDNs failed to load');
-                showVideoSDKError();
+                console.error('All VideoSDK CDNs failed to load, using fallback');
+                loadVideoSDKFallback();
                 return;
             }
             
@@ -44,6 +46,55 @@
             };
             
             document.head.appendChild(script);
+        }
+        
+        function loadVideoSDKFallback() {
+            console.log('Loading VideoSDK fallback implementation...');
+            const script = document.createElement('script');
+            script.src = 'assets/js/videosdk-fallback.js';
+            
+            script.onload = function() {
+                console.log('VideoSDK fallback loaded successfully');
+                videoSDKLoaded = true;
+                // Show fallback notification
+                showFallbackNotification();
+                // Reinitialize the app
+                if (window.zyraApp) {
+                    window.zyraApp.init();
+                }
+            };
+            
+            script.onerror = function() {
+                console.error('Failed to load VideoSDK fallback');
+                showVideoSDKError();
+            };
+            
+            document.head.appendChild(script);
+        }
+        
+        function showFallbackNotification() {
+            const notificationDiv = document.createElement('div');
+            notificationDiv.className = 'fixed top-4 right-4 bg-yellow-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
+            notificationDiv.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle mr-3 mt-1"></i>
+                    <div>
+                        <strong>Using Offline Mode</strong><br>
+                        <small class="text-yellow-100">VideoSDK CDNs are unavailable. Using local fallback with limited functionality.</small>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" class="mt-2 bg-white text-yellow-500 px-3 py-1 rounded text-sm font-semibold hover:bg-yellow-50">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notificationDiv);
+            
+            // Auto remove after 10 seconds
+            setTimeout(() => {
+                if (notificationDiv.parentNode) {
+                    notificationDiv.remove();
+                }
+            }, 10000);
         }
         
         function showVideoSDKError() {

@@ -48,8 +48,9 @@ class ZyraApp {
             } else if (attempts < maxAttempts) {
                 setTimeout(checkVideoSDK, 100); // Check every 100ms
             } else {
-                console.error('VideoSDK failed to load after maximum attempts');
-                this.showNotification('VideoSDK is taking longer than expected to load. Please check your internet connection.', 'warning');
+                console.error('VideoSDK failed to load after maximum attempts, starting demo mode');
+                this.showNotification('VideoSDK unavailable. Starting demo mode with limited functionality.', 'warning');
+                this.startDemoMode();
             }
         };
         
@@ -212,6 +213,99 @@ class ZyraApp {
             console.error('Error joining meeting:', error);
             this.showNotification('Failed to join meeting. Please check your connection.', 'error');
         }
+    }
+    
+    // Demo mode for when VideoSDK is not available
+    startDemoMode() {
+        console.log('Starting demo mode...');
+        this.showNotification('Demo Mode: Video conferencing features are simulated', 'info');
+        
+        // Create a mock meeting
+        this.meeting = {
+            meetingId: 'demo-' + Date.now(),
+            participants: {},
+            events: {},
+            
+            on: function(event, callback) {
+                if (!this.events[event]) {
+                    this.events[event] = [];
+                }
+                this.events[event].push(callback);
+            },
+            
+            triggerEvent: function(event, data) {
+                if (this.events[event]) {
+                    this.events[event].forEach(callback => {
+                        try {
+                            callback(data);
+                        } catch (error) {
+                            console.error('Error in event callback:', error);
+                        }
+                    });
+                }
+            },
+            
+            join: function() {
+                console.log('Demo: Joining meeting...');
+                setTimeout(() => {
+                    this.triggerEvent('meeting-joined');
+                }, 1000);
+            },
+            
+            leave: function() {
+                console.log('Demo: Leaving meeting...');
+                this.triggerEvent('meeting-left');
+            },
+            
+            muteMic: function() { console.log('Demo: Muting mic'); },
+            unmuteMic: function() { console.log('Demo: Unmuting mic'); },
+            enableWebcam: function() { console.log('Demo: Enabling webcam'); },
+            disableWebcam: function() { console.log('Demo: Disabling webcam'); },
+            startScreenShare: function() { console.log('Demo: Starting screen share'); },
+            stopScreenShare: function() { console.log('Demo: Stopping screen share'); },
+            
+            getLocalVideoStream: function() {
+                return new Promise((resolve, reject) => {
+                    // Try to get actual media stream
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                            .then(stream => resolve(stream))
+                            .catch(() => {
+                                // If real media fails, create a demo stream
+                                this.createDemoVideoStream().then(resolve).catch(reject);
+                            });
+                    } else {
+                        this.createDemoVideoStream().then(resolve).catch(reject);
+                    }
+                });
+            },
+            
+            createDemoVideoStream: function() {
+                return new Promise((resolve) => {
+                    // Create a canvas with demo content
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 640;
+                    canvas.height = 480;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Draw demo content
+                    ctx.fillStyle = '#1a4d3a';
+                    ctx.fillRect(0, 0, 640, 480);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Demo Video Stream', 320, 240);
+                    ctx.fillText('VideoSDK Offline Mode', 320, 280);
+                    
+                    // Convert canvas to stream
+                    const stream = canvas.captureStream(30);
+                    resolve(stream);
+                });
+            }
+        };
+        
+        this.setupMeetingEventListeners();
+        this.meeting.join();
     }
     
     setupMeetingEventListeners() {
