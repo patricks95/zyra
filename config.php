@@ -11,11 +11,11 @@ define('APP_NAME', 'Zyra');
 define('APP_VERSION', '1.0.0');
 define('APP_DESCRIPTION', 'Professional Video Conferencing Made Simple');
 
-// Database Configuration (if needed for future features)
+// Database Configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'zyra_conferences');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'u765872199_zyradb');
+define('DB_USER', 'u765872199_patricks');
+define('DB_PASS', '7^b?vmFk/+Qz');
 
 // Security Configuration
 define('ENCRYPTION_KEY', 'zyra_secure_key_2024');
