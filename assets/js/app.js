@@ -1,4 +1,5 @@
-// Zyra Video Conferencing Application JavaScript
+// Zyra Video Conferencing Application - Correct VideoSDK Implementation
+// Based on official VideoSDK documentation
 
 class ZyraApp {
     constructor() {
@@ -31,7 +32,7 @@ class ZyraApp {
     }
     
     waitForVideoSDK() {
-        const maxAttempts = 100; // 10 seconds max
+        const maxAttempts = 50; // 5 seconds max
         let attempts = 0;
         
         const checkVideoSDK = () => {
@@ -49,9 +50,8 @@ class ZyraApp {
             } else if (attempts < maxAttempts) {
                 setTimeout(checkVideoSDK, 100); // Check every 100ms
             } else {
-                console.error('VideoSDK failed to load after maximum attempts, starting demo mode');
-                this.showNotification('VideoSDK unavailable. Starting demo mode with limited functionality.', 'warning');
-                this.startDemoMode();
+                console.error('VideoSDK failed to load after maximum attempts');
+                this.showNotification('VideoSDK failed to load. Please check your internet connection and refresh the page.', 'error');
             }
         };
         
@@ -199,9 +199,9 @@ class ZyraApp {
                 return;
             }
             
-            console.log('Initializing meeting with VideoSDK...');
+            console.log('Creating meeting with VideoSDK...');
             
-            // Create meeting object with minimal configuration to avoid event issues
+            // Create meeting using correct VideoSDK API
             this.meeting = VideoSDK.initMeeting({
                 meetingId: meetingId,
                 name: 'User',
@@ -212,330 +212,35 @@ class ZyraApp {
             
             console.log('Meeting object created:', this.meeting);
             
-            // Skip event listeners entirely and use direct approach
-            console.log('Skipping event listeners, using direct approach...');
-            this.setupDirectMeetingHandling();
-            
             // Join the meeting
-            console.log('Joining meeting...');
             this.meeting.join();
             
-            // Immediately show meeting modal and set up video
-            setTimeout(() => {
-                console.log('Setting up meeting interface...');
-                this.showMeetingModal();
-                this.setupLocalVideo();
-                this.showNotification('Meeting started successfully!', 'success');
-            }, 500);
+            // Show meeting interface immediately
+            this.showMeetingModal();
+            this.setupLocalVideo();
+            this.showNotification('Meeting started successfully!', 'success');
             
         } catch (error) {
             console.error('Error joining meeting:', error);
-            this.showNotification('Failed to join meeting. Using demo mode...', 'warning');
-            
-            // Try demo mode as fallback
-            console.log('Trying demo mode as fallback...');
-            this.startDemoMode();
+            this.showNotification('Failed to join meeting. Please check your connection.', 'error');
         }
-    }
-    
-    setupDirectMeetingHandling() {
-        console.log('Setting up direct meeting handling...');
-        
-        // Override the meeting object methods to handle events manually
-        if (this.meeting) {
-            const originalJoin = this.meeting.join;
-            const originalLeave = this.meeting.leave;
-            
-            this.meeting.join = function() {
-                console.log('Meeting join called');
-                if (originalJoin) {
-                    try {
-                        originalJoin.call(this);
-                    } catch (error) {
-                        console.warn('Original join failed:', error);
-                    }
-                }
-                
-                // Manually trigger meeting joined
-                setTimeout(() => {
-                    if (window.zyraApp) {
-                        window.zyraApp.handleMeetingJoined();
-                    }
-                }, 1000);
-            };
-            
-            this.meeting.leave = function() {
-                console.log('Meeting leave called');
-                if (originalLeave) {
-                    try {
-                        originalLeave.call(this);
-                    } catch (error) {
-                        console.warn('Original leave failed:', error);
-                    }
-                }
-                
-                // Manually trigger meeting left
-                if (window.zyraApp) {
-                    window.zyraApp.handleMeetingLeft();
-                }
-            };
-        }
-    }
-    
-    handleMeetingJoined() {
-        console.log('Meeting joined successfully (direct handling)');
-        this.showMeetingModal();
-        this.setupLocalVideo();
-        this.showNotification('Successfully joined meeting!', 'success');
-    }
-    
-    handleMeetingLeft() {
-        console.log('Meeting left (direct handling)');
-        this.closeMeeting();
-        this.showNotification('Left meeting successfully', 'success');
-    }
-    
-    // Demo mode for when VideoSDK is not available
-    startDemoMode() {
-        console.log('Starting demo mode...');
-        this.showNotification('Demo Mode: Video conferencing features are simulated', 'info');
-        
-        // Create a mock meeting
-        this.meeting = {
-            meetingId: 'demo-' + Date.now(),
-            participants: {},
-            events: {},
-            
-            on: function(event, callback) {
-                if (!this.events[event]) {
-                    this.events[event] = [];
-                }
-                this.events[event].push(callback);
-            },
-            
-            triggerEvent: function(event, data) {
-                if (this.events[event]) {
-                    this.events[event].forEach(callback => {
-                        try {
-                            callback(data);
-                        } catch (error) {
-                            console.error('Error in event callback:', error);
-                        }
-                    });
-                }
-            },
-            
-            join: function() {
-                console.log('Demo: Joining meeting...');
-                setTimeout(() => {
-                    this.triggerEvent('meeting-joined');
-                }, 1000);
-            },
-            
-            leave: function() {
-                console.log('Demo: Leaving meeting...');
-                this.triggerEvent('meeting-left');
-            },
-            
-            muteMic: function() { console.log('Demo: Muting mic'); },
-            unmuteMic: function() { console.log('Demo: Unmuting mic'); },
-            enableWebcam: function() { console.log('Demo: Enabling webcam'); },
-            disableWebcam: function() { console.log('Demo: Disabling webcam'); },
-            startScreenShare: function() { console.log('Demo: Starting screen share'); },
-            stopScreenShare: function() { console.log('Demo: Stopping screen share'); },
-            
-            getLocalVideoStream: function() {
-                return new Promise((resolve, reject) => {
-                    // Try to get actual media stream
-                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                            .then(stream => resolve(stream))
-                            .catch(() => {
-                                // If real media fails, create a demo stream
-                                this.createDemoVideoStream().then(resolve).catch(reject);
-                            });
-                    } else {
-                        this.createDemoVideoStream().then(resolve).catch(reject);
-                    }
-                });
-            },
-            
-            createDemoVideoStream: function() {
-                return new Promise((resolve) => {
-                    // Create a canvas with demo content
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 640;
-                    canvas.height = 480;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Draw demo content
-                    ctx.fillStyle = '#1a4d3a';
-                    ctx.fillRect(0, 0, 640, 480);
-                    ctx.fillStyle = 'white';
-                    ctx.font = '24px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('Demo Video Stream', 320, 240);
-                    ctx.fillText('VideoSDK Offline Mode', 320, 280);
-                    
-                    // Convert canvas to stream
-                    const stream = canvas.captureStream(30);
-                    resolve(stream);
-                });
-            }
-        };
-        
-        this.setupMeetingEventListeners();
-        this.meeting.join();
-    }
-    
-    setupMeetingEventListeners() {
-        try {
-            console.log('Setting up meeting event listeners...');
-            
-            // Check if the meeting object has the on method
-            if (!this.meeting || typeof this.meeting.on !== 'function') {
-                console.warn('Meeting object does not have on method, using basic setup');
-                this.setupBasicEventListeners();
-                return;
-            }
-            
-            // Try to set up listeners one by one with individual error handling
-            this.setupEventListener('meeting-joined', () => {
-                console.log('Meeting joined successfully');
-                this.showMeetingModal();
-                this.setupLocalVideo();
-                this.showNotification('Successfully joined meeting!', 'success');
-            });
-            
-            this.setupEventListener('meeting-left', () => {
-                console.log('Meeting left');
-                this.closeMeeting();
-                this.showNotification('Left meeting successfully', 'success');
-            });
-            
-            this.setupEventListener('participant-joined', (participant) => {
-                console.log('Participant joined:', participant);
-                if (participant && participant.id) {
-                    this.participants.set(participant.id, participant);
-                    this.updateParticipantCount();
-                    this.setupRemoteVideo(participant);
-                    this.showNotification(`${participant.name || 'Participant'} joined the meeting`, 'success');
-                }
-            });
-            
-            this.setupEventListener('participant-left', (participant) => {
-                console.log('Participant left:', participant);
-                if (participant && participant.id) {
-                    this.participants.delete(participant.id);
-                    this.updateParticipantCount();
-                    this.showNotification(`${participant.name || 'Participant'} left the meeting`, 'warning');
-                }
-            });
-            
-            this.setupEventListener('stream-changed', (data) => {
-                console.log('Stream changed:', data);
-                if (data && data.stream && data.stream.kind === 'video') {
-                    this.setupRemoteVideo(data.participant);
-                }
-            });
-            
-            this.setupEventListener('error', (error) => {
-                console.error('Meeting error:', error);
-                this.showNotification('Meeting error occurred. Please try again.', 'error');
-            });
-            
-        } catch (error) {
-            console.error('Error setting up meeting event listeners:', error);
-            this.setupBasicEventListeners();
-        }
-    }
-    
-    setupEventListener(eventName, callback) {
-        try {
-            console.log(`Setting up listener for: ${eventName}`);
-            this.meeting.on(eventName, callback);
-            console.log(`Successfully set up listener for: ${eventName}`);
-        } catch (error) {
-            console.warn(`Could not set up listener for event: ${eventName}`, error);
-            // Don't throw, just log and continue
-        }
-    }
-    
-    handleMeetingEvent(eventName, data) {
-        console.log(`Meeting event: ${eventName}`, data);
-        
-        switch (eventName) {
-            case 'meeting-joined':
-                this.showMeetingModal();
-                this.setupLocalVideo();
-                this.showNotification('Successfully joined meeting!', 'success');
-                break;
-                
-            case 'meeting-left':
-                this.closeMeeting();
-                this.showNotification('Left meeting successfully', 'success');
-                break;
-                
-            case 'participant-joined':
-                if (data && data.id) {
-                    this.participants.set(data.id, data);
-                    this.updateParticipantCount();
-                    this.setupRemoteVideo(data);
-                    this.showNotification(`${data.name || 'Participant'} joined the meeting`, 'success');
-                }
-                break;
-                
-            case 'participant-left':
-                if (data && data.id) {
-                    this.participants.delete(data.id);
-                    this.updateParticipantCount();
-                    this.showNotification(`${data.name || 'Participant'} left the meeting`, 'warning');
-                }
-                break;
-                
-            case 'stream-changed':
-                if (data && data.stream && data.stream.kind === 'video') {
-                    this.setupRemoteVideo(data.participant);
-                }
-                break;
-                
-            case 'error':
-                console.error('Meeting error:', data);
-                this.showNotification('Meeting error occurred. Please try again.', 'error');
-                break;
-        }
-    }
-    
-    setupBasicEventListeners() {
-        console.log('Setting up basic event listeners as fallback');
-        // Basic fallback for when event system doesn't work
-        setTimeout(() => {
-            this.showMeetingModal();
-            this.setupLocalVideo();
-            this.showNotification('Meeting started in basic mode', 'info');
-        }, 1000);
     }
     
     setupLocalVideo() {
         const localVideo = document.getElementById('localVideo');
         if (localVideo && this.meeting) {
-            this.meeting.getLocalVideoStream().then((stream) => {
+            // Get local video stream
+            navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: true 
+            }).then((stream) => {
                 this.localStream = stream;
                 localVideo.srcObject = stream;
+                console.log('Local video stream set up successfully');
             }).catch(error => {
                 console.error('Error getting local video stream:', error);
                 this.showNotification('Failed to access camera. Please check permissions.', 'error');
             });
-        }
-    }
-    
-    setupRemoteVideo(participant) {
-        const remoteVideo = document.getElementById('remoteVideo');
-        if (remoteVideo && participant.streams) {
-            const videoStream = participant.streams.find(stream => stream.kind === 'video');
-            if (videoStream) {
-                remoteVideo.srcObject = videoStream.track;
-            }
         }
     }
     
@@ -544,25 +249,18 @@ class ZyraApp {
         
         try {
             if (this.isMuted) {
-                if (typeof this.meeting.unmuteMic === 'function') {
-                    this.meeting.unmuteMic();
-                }
+                this.meeting.unmuteMic();
                 this.updateMuteButton(false);
                 console.log('Microphone unmuted');
             } else {
-                if (typeof this.meeting.muteMic === 'function') {
-                    this.meeting.muteMic();
-                }
+                this.meeting.muteMic();
                 this.updateMuteButton(true);
                 console.log('Microphone muted');
             }
             this.isMuted = !this.isMuted;
         } catch (error) {
             console.error('Error toggling mute:', error);
-            // Still update UI even if VideoSDK call fails
-            this.isMuted = !this.isMuted;
-            this.updateMuteButton(this.isMuted);
-            this.showNotification('Microphone toggled (simulated)', 'info');
+            this.showNotification('Failed to toggle microphone', 'error');
         }
     }
     
@@ -571,25 +269,18 @@ class ZyraApp {
         
         try {
             if (this.isVideoOff) {
-                if (typeof this.meeting.enableWebcam === 'function') {
-                    this.meeting.enableWebcam();
-                }
+                this.meeting.enableWebcam();
                 this.updateVideoButton(false);
                 console.log('Video enabled');
             } else {
-                if (typeof this.meeting.disableWebcam === 'function') {
-                    this.meeting.disableWebcam();
-                }
+                this.meeting.disableWebcam();
                 this.updateVideoButton(true);
                 console.log('Video disabled');
             }
             this.isVideoOff = !this.isVideoOff;
         } catch (error) {
             console.error('Error toggling video:', error);
-            // Still update UI even if VideoSDK call fails
-            this.isVideoOff = !this.isVideoOff;
-            this.updateVideoButton(this.isVideoOff);
-            this.showNotification('Video toggled (simulated)', 'info');
+            this.showNotification('Failed to toggle camera', 'error');
         }
     }
     
@@ -598,25 +289,18 @@ class ZyraApp {
         
         try {
             if (this.isScreenSharing) {
-                if (typeof this.meeting.stopScreenShare === 'function') {
-                    this.meeting.stopScreenShare();
-                }
+                this.meeting.stopScreenShare();
                 this.updateScreenShareButton(false);
                 console.log('Screen share stopped');
             } else {
-                if (typeof this.meeting.startScreenShare === 'function') {
-                    this.meeting.startScreenShare();
-                }
+                this.meeting.startScreenShare();
                 this.updateScreenShareButton(true);
                 console.log('Screen share started');
             }
             this.isScreenSharing = !this.isScreenSharing;
         } catch (error) {
             console.error('Error toggling screen share:', error);
-            // Still update UI even if VideoSDK call fails
-            this.isScreenSharing = !this.isScreenSharing;
-            this.updateScreenShareButton(this.isScreenSharing);
-            this.showNotification('Screen share toggled (simulated)', 'info');
+            this.showNotification('Failed to toggle screen share', 'error');
         }
     }
     
@@ -731,7 +415,7 @@ class ZyraApp {
         
         // Create notification element
         const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
+        notification.className = `fixed top-4 right-4 notification ${type} p-4 rounded-lg shadow-lg z-50`;
         notification.innerHTML = `
             <div class="flex items-center">
                 <i class="fas fa-${this.getNotificationIcon(type)} mr-2"></i>
