@@ -30,7 +30,7 @@ class ZyraApp {
     }
     
     waitForVideoSDK() {
-        const maxAttempts = 50; // 5 seconds max
+        const maxAttempts = 100; // 10 seconds max
         let attempts = 0;
         
         const checkVideoSDK = () => {
@@ -49,7 +49,7 @@ class ZyraApp {
                 setTimeout(checkVideoSDK, 100); // Check every 100ms
             } else {
                 console.error('VideoSDK failed to load after maximum attempts');
-                this.showNotification('VideoSDK failed to load. Please check your internet connection and refresh the page.', 'error');
+                this.showNotification('VideoSDK is taking longer than expected to load. Please check your internet connection.', 'warning');
             }
         };
         

@@ -7,49 +7,78 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎥%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Error handling for VideoSDK loading - must be defined before VideoSDK script
-        function handleVideoSDKError() {
-            console.error('Failed to load VideoSDK from CDN, trying alternative...');
-            // Try alternative CDN
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js';
-            script.onerror = function() {
-                console.error('VideoSDK failed to load from alternative CDN');
+        // VideoSDK loading with multiple fallbacks
+        let videoSDKLoaded = false;
+        let videoSDKAttempts = 0;
+        const maxAttempts = 3;
+        
+        const videoSDKCDNs = [
+            'https://sdk.videosdk.live/js-sdk/0.3.3/videosdk.js',
+            'https://cdn.jsdelivr.net/npm/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js',
+            'https://unpkg.com/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js'
+        ];
+        
+        function loadVideoSDK() {
+            if (videoSDKAttempts >= maxAttempts) {
+                console.error('All VideoSDK CDNs failed to load');
                 showVideoSDKError();
-            };
+                return;
+            }
+            
+            const script = document.createElement('script');
+            script.src = videoSDKCDNs[videoSDKAttempts];
+            
             script.onload = function() {
-                console.log('VideoSDK loaded from alternative CDN');
+                console.log(`VideoSDK loaded successfully from CDN ${videoSDKAttempts + 1}`);
+                videoSDKLoaded = true;
                 // Reinitialize the app
                 if (window.zyraApp) {
                     window.zyraApp.init();
                 }
             };
+            
+            script.onerror = function() {
+                console.error(`Failed to load VideoSDK from CDN ${videoSDKAttempts + 1}: ${videoSDKCDNs[videoSDKAttempts]}`);
+                videoSDKAttempts++;
+                setTimeout(loadVideoSDK, 1000); // Try next CDN after 1 second
+            };
+            
             document.head.appendChild(script);
         }
         
         function showVideoSDKError() {
             const errorDiv = document.createElement('div');
-            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
             errorDiv.innerHTML = `
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle mr-3 mt-1"></i>
                     <div>
-                        <strong>VideoSDK Error</strong><br>
-                        <small>Please refresh the page or check your internet connection</small>
+                        <strong>VideoSDK Connection Error</strong><br>
+                        <small class="text-red-100">Unable to load video conferencing library. This might be due to:</small>
+                        <ul class="text-red-100 text-sm mt-2 ml-4 list-disc">
+                            <li>Network connectivity issues</li>
+                            <li>Firewall blocking the connection</li>
+                            <li>CDN server problems</li>
+                        </ul>
+                        <button onclick="location.reload()" class="mt-3 bg-white text-red-500 px-3 py-1 rounded text-sm font-semibold hover:bg-red-50">
+                            Refresh Page
+                        </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(errorDiv);
             
-            // Auto remove after 10 seconds
+            // Auto remove after 15 seconds
             setTimeout(() => {
                 if (errorDiv.parentNode) {
                     errorDiv.remove();
                 }
-            }, 10000);
+            }, 15000);
         }
+        
+        // Start loading VideoSDK
+        loadVideoSDK();
     </script>
-    <script src="https://sdk.videosdk.live/js-sdk/0.3.3/videosdk.js" onerror="handleVideoSDKError()"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
