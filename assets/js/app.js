@@ -198,6 +198,7 @@ class ZyraApp {
                 return;
             }
             
+            console.log('Initializing meeting with VideoSDK...');
             this.meeting = VideoSDK.initMeeting({
                 meetingId: meetingId,
                 name: 'User',
@@ -206,12 +207,22 @@ class ZyraApp {
                 maxResolution: 'hd'
             });
             
+            console.log('Meeting object created:', this.meeting);
+            
+            // Set up event listeners with error handling
             this.setupMeetingEventListeners();
+            
+            // Join the meeting
+            console.log('Joining meeting...');
             this.meeting.join();
             
         } catch (error) {
             console.error('Error joining meeting:', error);
             this.showNotification('Failed to join meeting. Please check your connection.', 'error');
+            
+            // Try demo mode as fallback
+            console.log('Trying demo mode as fallback...');
+            this.startDemoMode();
         }
     }
     
@@ -309,45 +320,87 @@ class ZyraApp {
     }
     
     setupMeetingEventListeners() {
-        this.meeting.on('meeting-joined', () => {
-            console.log('Meeting joined successfully');
+        try {
+            // Use try-catch to handle event listener setup errors
+            const events = [
+                'meeting-joined',
+                'meeting-left', 
+                'participant-joined',
+                'participant-left',
+                'stream-changed',
+                'error'
+            ];
+            
+            events.forEach(eventName => {
+                try {
+                    this.meeting.on(eventName, (data) => {
+                        this.handleMeetingEvent(eventName, data);
+                    });
+                } catch (error) {
+                    console.warn(`Could not set up listener for event: ${eventName}`, error);
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error setting up meeting event listeners:', error);
+            // Fallback: set up basic listeners manually
+            this.setupBasicEventListeners();
+        }
+    }
+    
+    handleMeetingEvent(eventName, data) {
+        console.log(`Meeting event: ${eventName}`, data);
+        
+        switch (eventName) {
+            case 'meeting-joined':
+                this.showMeetingModal();
+                this.setupLocalVideo();
+                this.showNotification('Successfully joined meeting!', 'success');
+                break;
+                
+            case 'meeting-left':
+                this.closeMeeting();
+                this.showNotification('Left meeting successfully', 'success');
+                break;
+                
+            case 'participant-joined':
+                if (data && data.id) {
+                    this.participants.set(data.id, data);
+                    this.updateParticipantCount();
+                    this.setupRemoteVideo(data);
+                    this.showNotification(`${data.name || 'Participant'} joined the meeting`, 'success');
+                }
+                break;
+                
+            case 'participant-left':
+                if (data && data.id) {
+                    this.participants.delete(data.id);
+                    this.updateParticipantCount();
+                    this.showNotification(`${data.name || 'Participant'} left the meeting`, 'warning');
+                }
+                break;
+                
+            case 'stream-changed':
+                if (data && data.stream && data.stream.kind === 'video') {
+                    this.setupRemoteVideo(data.participant);
+                }
+                break;
+                
+            case 'error':
+                console.error('Meeting error:', data);
+                this.showNotification('Meeting error occurred. Please try again.', 'error');
+                break;
+        }
+    }
+    
+    setupBasicEventListeners() {
+        console.log('Setting up basic event listeners as fallback');
+        // Basic fallback for when event system doesn't work
+        setTimeout(() => {
             this.showMeetingModal();
             this.setupLocalVideo();
-            this.showNotification('Successfully joined meeting!', 'success');
-        });
-        
-        this.meeting.on('meeting-left', () => {
-            console.log('Meeting left');
-            this.closeMeeting();
-            this.showNotification('Left meeting successfully', 'success');
-        });
-        
-        this.meeting.on('participant-joined', (participant) => {
-            console.log('Participant joined:', participant);
-            this.participants.set(participant.id, participant);
-            this.updateParticipantCount();
-            this.setupRemoteVideo(participant);
-            this.showNotification(`${participant.name} joined the meeting`, 'success');
-        });
-        
-        this.meeting.on('participant-left', (participant) => {
-            console.log('Participant left:', participant);
-            this.participants.delete(participant.id);
-            this.updateParticipantCount();
-            this.showNotification(`${participant.name} left the meeting`, 'warning');
-        });
-        
-        this.meeting.on('stream-changed', (data) => {
-            console.log('Stream changed:', data);
-            if (data.stream && data.stream.kind === 'video') {
-                this.setupRemoteVideo(data.participant);
-            }
-        });
-        
-        this.meeting.on('error', (error) => {
-            console.error('Meeting error:', error);
-            this.showNotification('Meeting error occurred. Please try again.', 'error');
-        });
+            this.showNotification('Meeting started in basic mode', 'info');
+        }, 1000);
     }
     
     setupLocalVideo() {

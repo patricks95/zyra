@@ -29,6 +29,7 @@ window.VideoSDK = {
             },
             
             on: function(event, callback) {
+                console.log('VideoSDK Fallback: Adding event listener for', event);
                 if (!this.events[event]) {
                     this.events[event] = [];
                 }
