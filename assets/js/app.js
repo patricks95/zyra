@@ -32,7 +32,7 @@ class ZyraApp {
     }
     
     waitForVideoSDK() {
-        const maxAttempts = 50; // 5 seconds max
+        const maxAttempts = 30; // 3 seconds max
         let attempts = 0;
         
         const checkVideoSDK = () => {
@@ -42,16 +42,14 @@ class ZyraApp {
                 try {
                     VideoSDK.config(this.token);
                     console.log('VideoSDK initialized successfully');
-                    this.showNotification('VideoSDK loaded successfully!', 'success');
                 } catch (error) {
                     console.error('Error initializing VideoSDK:', error);
-                    this.showNotification('Error initializing VideoSDK. Please refresh the page.', 'error');
                 }
             } else if (attempts < maxAttempts) {
                 setTimeout(checkVideoSDK, 100); // Check every 100ms
             } else {
                 console.error('VideoSDK failed to load after maximum attempts');
-                this.showNotification('VideoSDK failed to load. Please check your internet connection and refresh the page.', 'error');
+                this.showNotification('VideoSDK failed to load. Please refresh the page.', 'error');
             }
         };
         
@@ -191,11 +189,7 @@ class ZyraApp {
     joinMeetingWithId(meetingId) {
         try {
             if (typeof VideoSDK === 'undefined') {
-                this.showNotification('VideoSDK is still loading. Please wait a moment and try again.', 'warning');
-                // Retry after a short delay
-                setTimeout(() => {
-                    this.joinMeetingWithId(meetingId);
-                }, 2000);
+                this.showNotification('VideoSDK is not loaded. Please refresh the page.', 'error');
                 return;
             }
             
