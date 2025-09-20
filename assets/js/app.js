@@ -206,13 +206,25 @@ class ZyraApp {
             
             console.log('Meeting object created:', this.meeting);
             
-            // Join the meeting
-            this.meeting.join();
+            // Override join method to handle success directly
+            const originalJoin = this.meeting.join.bind(this.meeting);
+            this.meeting.join = () => {
+                try {
+                    originalJoin();
+                    // Show meeting interface immediately after join
+                    setTimeout(() => {
+                        this.showMeetingModal();
+                        this.setupLocalVideo();
+                        this.showNotification('Meeting started successfully!', 'success');
+                    }, 500);
+                } catch (error) {
+                    console.error('Error in join:', error);
+                    this.showNotification('Failed to join meeting. Please check your connection.', 'error');
+                }
+            };
             
-            // Show meeting interface immediately
-            this.showMeetingModal();
-            this.setupLocalVideo();
-            this.showNotification('Meeting started successfully!', 'success');
+            // Start the meeting
+            this.meeting.join();
             
         } catch (error) {
             console.error('Error joining meeting:', error);
