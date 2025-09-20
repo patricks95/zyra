@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zyra - Video Conferencing</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎥%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://sdk.videosdk.live/js-sdk/0.3.3/videosdk.js"></script>
+    <script src="https://sdk.videosdk.live/js-sdk/0.3.3/videosdk.js" onerror="handleVideoSDKError()"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
 </head>
@@ -133,6 +134,49 @@
         </div>
     </div>
 
+    <script>
+        // Error handling for VideoSDK loading
+        function handleVideoSDKError() {
+            console.error('Failed to load VideoSDK from CDN, trying alternative...');
+            // Try alternative CDN
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@videosdk.live/js-sdk@0.3.3/dist/videosdk.js';
+            script.onerror = function() {
+                console.error('VideoSDK failed to load from alternative CDN');
+                showVideoSDKError();
+            };
+            script.onload = function() {
+                console.log('VideoSDK loaded from alternative CDN');
+                // Reinitialize the app
+                if (window.zyraApp) {
+                    window.zyraApp.init();
+                }
+            };
+            document.head.appendChild(script);
+        }
+        
+        function showVideoSDKError() {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50';
+            errorDiv.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <div>
+                        <strong>VideoSDK Error</strong><br>
+                        <small>Please refresh the page or check your internet connection</small>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(errorDiv);
+            
+            // Auto remove after 10 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.remove();
+                }
+            }, 10000);
+        }
+    </script>
     <script src="assets/js/app.js"></script>
 </body>
 </html>

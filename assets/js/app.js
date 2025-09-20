@@ -19,20 +19,41 @@ class ZyraApp {
     init() {
         console.log('Initializing Zyra Video Conferencing App...');
         
-        // Initialize VideoSDK
-        if (typeof VideoSDK !== 'undefined') {
-            VideoSDK.config(this.token);
-            console.log('VideoSDK initialized successfully');
-        } else {
-            console.error('VideoSDK not loaded');
-            this.showNotification('VideoSDK not loaded. Please refresh the page.', 'error');
-        }
+        // Wait for VideoSDK to load
+        this.waitForVideoSDK();
         
         // Bind event listeners
         this.bindEventListeners();
         
         // Initialize UI
         this.initializeUI();
+    }
+    
+    waitForVideoSDK() {
+        const maxAttempts = 50; // 5 seconds max
+        let attempts = 0;
+        
+        const checkVideoSDK = () => {
+            attempts++;
+            
+            if (typeof VideoSDK !== 'undefined') {
+                try {
+                    VideoSDK.config(this.token);
+                    console.log('VideoSDK initialized successfully');
+                    this.showNotification('VideoSDK loaded successfully!', 'success');
+                } catch (error) {
+                    console.error('Error initializing VideoSDK:', error);
+                    this.showNotification('Error initializing VideoSDK. Please refresh the page.', 'error');
+                }
+            } else if (attempts < maxAttempts) {
+                setTimeout(checkVideoSDK, 100); // Check every 100ms
+            } else {
+                console.error('VideoSDK failed to load after maximum attempts');
+                this.showNotification('VideoSDK failed to load. Please check your internet connection and refresh the page.', 'error');
+            }
+        };
+        
+        checkVideoSDK();
     }
     
     bindEventListeners() {
