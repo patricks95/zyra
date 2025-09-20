@@ -188,8 +188,13 @@ class ZyraApp {
     
     joinMeetingWithId(meetingId) {
         try {
-            if (!VideoSDK) {
-                throw new Error('VideoSDK not available');
+            if (typeof VideoSDK === 'undefined') {
+                this.showNotification('VideoSDK is still loading. Please wait a moment and try again.', 'warning');
+                // Retry after a short delay
+                setTimeout(() => {
+                    this.joinMeetingWithId(meetingId);
+                }, 2000);
+                return;
             }
             
             this.meeting = VideoSDK.initMeeting({
